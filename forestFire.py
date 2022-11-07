@@ -28,11 +28,88 @@ class ForestFire(gym.Env):
         # Compute number of people to put around the map
         self.n_people = int(np.floor(np.sqrt((self.env_height * self.env_width))))
 
+        # Value to keep track of people found
+        self.people_found = 0
+
         # Max number of time steps in a run
         # self.max_timesteps = 0
 
     def step(self, action):
-        pass
+        # Move the agent's location
+        if action == 0:
+            # Move Up
+            self.agent_location = (self.agent_location[0] - 1, self.agent_location[1])
+        elif action == 1:
+            # Move Right
+            self.agent_location = (self.agent_location[0], self.agent_location[1] + 1)
+        elif action == 2:
+            # Move Down
+            self.agent_location = (self.agent_location[0] + 1, self.agent_location[1])
+        elif action == 3:
+            # Move Left
+            self.agent_location = (self.agent_location[0], self.agent_location[1] - 1)
+        else:
+            print("ERROR: Invalid Action")
+
+        done = False
+        reward = 0
+        observation = np.zeros(8)
+        # Check if agent left the map
+        if self.agent_location[0] >= self.env_height or env.agent_location[0] < 0 or self.agent_location[1] >= self.env_width or env.agent_location[1] < 0:
+            print("Agent Left")
+            for i in range(self.people_found):
+                reward += 100
+            done = True
+            return observation, reward, done
+
+        # Check if the agent moved into fire
+        if self.heat_matrix[self.agent_location] == 1:
+            print("Agent in fire")
+            done = True
+            reward = -10
+
+        # Check if agent picked up a person
+        for i in range(self.n_people):
+            if self.agent_location == self.people_locations[i]:
+                # Agent found person
+                print('Person Found!')
+                self.people_found += 1
+                self.people_locations.pop(i)
+                self.n_people -= 1
+                break
+
+        # Increment the fire map
+        for i in range(len(self.heat_matrix)):
+            for j in range(len(self.heat_matrix[0])):
+                if self.heat_matrix[i][j] == 1:
+                    # Increment heat at each adjacent location
+                    if i - 1 >= 0 and self.heat_matrix[i - 1][j] < 1:
+                        self.heat_matrix[i - 1][j] += random.random()
+                    if i + 1 < self.env_height and self.heat_matrix[i + 1][j] < 1:
+                        self.heat_matrix[i + 1][j] += random.random()
+                    if j - 1 >= 0 and self.heat_matrix[i][j - 1] < 1:
+                        self.heat_matrix[i][j - 1] += random.random()
+                    if j + 1 < self.env_width and self.heat_matrix[i][j + 1] < 1:
+                        self.heat_matrix[i][j + 1] += random.random()
+
+        for i in range(len(self.heat_matrix)):
+            for j in range(len(self.heat_matrix[0])):
+                if self.heat_matrix[i][j] > 1:
+                    self.heat_matrix[i][j] = 1
+
+        # Determine if a person has been lost in the fire
+        for person in self.people_locations:
+            if self.heat_matrix[person] == 1:
+                # Person is in fire and must be removed
+                for per in range(len(self.people_locations)):
+                    if self.people_locations[per] == person:
+                        self.people_locations.pop(per)
+                        self.n_people -= 1
+                        print("Person is gone")
+                        break
+
+        # Calculate observation
+        return observation, reward, done
 
     def reset(self):
         # Setting agent location
@@ -44,6 +121,9 @@ class ForestFire(gym.Env):
         # Set Fire Locations
         self.heat_matrix[int(self.env_height / 2)][0] = 1
         self.heat_matrix[int(self.env_height - 1), int(self.env_width / 2)] = 1
+
+        # Set amount of people found
+        self.people_found = 0
 
         # Place people around map
         self.people_locations = []
@@ -73,6 +153,7 @@ class ForestFire(gym.Env):
         for person in self.people_locations:
             gridworld[person] = (0, 255, 0)
 
+        gridworld = cv2.resize(gridworld, (500, 500))
         cv2.imshow('matrix', gridworld)
         cv2.waitKey(0)
 
@@ -80,4 +161,7 @@ class ForestFire(gym.Env):
 if __name__ == '__main__':
     env = ForestFire(150, 150)
     env.reset()
-    env.render()
+    done = False
+    while not done:
+        obs, rew, done = env.step(2)
+        env.render()
