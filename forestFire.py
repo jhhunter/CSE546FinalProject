@@ -109,6 +109,46 @@ class ForestFire(gym.Env):
                         break
 
         # Calculate observation
+        up = 0
+        right = 1
+        down = 2
+        left = 3
+        agent_row, agent_col = self.agent_location
+        for per_row, per_col in self.people_locations:
+            row_off = agent_row - per_row
+            col_off = agent_col - per_col
+            if(row_off > 0):
+                # Agent row is greater than person row. Contribution guaranteed in up.
+                observation[up] += 1/row_off
+            elif(row_off < 0):
+                # Agent row is smaller than person row. Contribution guaranteed in down.
+                observation[down] += 1/abs(row_off)
+            if(col_off > 0):
+                # Agent column is greater than person column. Contribution guaranteed in left.
+                observation[left] += 1/col_off
+            elif(col_off < 0):
+                # Agent column is smaller than person column. Contribution guaranteed in right.
+                observation[right] += 1/abs(col_off)
+
+        for row in range(len(self.heat_matrix)):
+            for col in range(len(self.heat_matrix[0])):
+                if self.heat_matrix[row][col] == 1:
+                    row_off = agent_row - row
+                    col_off = agent_col - col
+                    if(row_off > 0):
+                        # Agent row is greater than fire row. Contribution guaranteed in up.
+                        observation[4+up] += 1/row_off
+                    elif(row_off< 0):
+                        # Agent row is smaller than fire row. Contribution guaranteed in down.
+                        observation[4+down] += 1/abs(row_off)
+                    if(col_off > 0):
+                        # Agent column is greater than fire column. Contribution guaranteed in left.
+                        observation[4+left] += 1/col_off
+                    elif(col_off < 0):
+                        # Agent column is smaller than fire column. Contribution guaranteed in right.
+                        observation[4+right] += 1/abs(col_off)
+
+                
         return observation, reward, done
 
     def reset(self):
@@ -128,13 +168,55 @@ class ForestFire(gym.Env):
         # Place people around map
         self.people_locations = []
         for i in range(self.n_people):
-            x = random.randint(0, self.env_width-1)
-            y = random.randint(0, self.env_height-1)
+            col = random.randint(0, self.env_width-1)
+            row = random.randint(0, self.env_height-1)
             # Check to make sure person is not already positioned on a cell with something else there
-            while (x, y) in self.people_locations or self.heat_matrix[x][y] == 1 or (x, y) == self.agent_location:
-                x = random.randint(0, self.env_width-1)
-                y = random.randint(0, self.env_height-1)
-            self.people_locations.append((x, y))
+            while (row, col) in self.people_locations or self.heat_matrix[row][col] == 1 or (row, col) == self.agent_location:
+                col = random.randint(0, self.env_width-1)
+                row = random.randint(0, self.env_height-1)
+            self.people_locations.append((row, col))
+        
+        # Calculating observation
+        observation = np.zeros(8)
+        up = 0
+        right = 1
+        down = 2
+        left = 3
+        agent_row, agent_col = self.agent_location
+        for per_row, per_col in self.people_locations:
+            row_off = agent_row - per_row
+            col_off = agent_col - per_col
+            if(row_off > 0):
+                # Agent row is greater than person row. Contribution guaranteed in up.
+                observation[up] += 1/row_off
+            elif(row_off< 0):
+                # Agent row is smaller than person row. Contribution guaranteed in down.
+                observation[down] += 1/abs(row_off)
+            if(col_off > 0):
+                # Agent column is greater than person column. Contribution guaranteed in left.
+                observation[left] += 1/col_off
+            elif(col_off < 0):
+                # Agent column is smaller than person column. Contribution guaranteed in right.
+                observation[right] += 1/abs(col_off)
+
+        
+        for row in range(len(self.heat_matrix)):
+            for col in range(len(self.heat_matrix[0])):
+                if self.heat_matrix[row][col] == 1:
+                    row_off = agent_row - row
+                    col_off = agent_col - col
+                    if(row_off > 0):
+                        # Agent row is greater than fire row. Contribution guaranteed in up.
+                        observation[4+up] += 1/row_off
+                    elif(row_off< 0):
+                        # Agent row is smaller than fire row. Contribution guaranteed in down.
+                        observation[4+down] += 1/abs(row_off)
+                    if(col_off > 0):
+                        # Agent column is greater than fire column. Contribution guaranteed in left.
+                        observation[4+left] += 1/col_off
+                    elif(col_off < 0):
+                        # Agent column is smaller than fire column. Contribution guaranteed in right.
+                        observation[4+right] += 1/abs(col_off)
 
     def render(self):
         # Create grid to display world on
@@ -152,7 +234,7 @@ class ForestFire(gym.Env):
         # Place people on the gridworld
         for person in self.people_locations:
             gridworld[person] = (0, 255, 0)
-
+        
         gridworld = cv2.resize(gridworld, (500, 500))
         cv2.imshow('matrix', gridworld)
         cv2.waitKey(0)
@@ -161,6 +243,7 @@ class ForestFire(gym.Env):
 if __name__ == '__main__':
     env = ForestFire(150, 150)
     env.reset()
+    env.render()
     done = False
     while not done:
         obs, rew, done = env.step(2)
