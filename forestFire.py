@@ -13,7 +13,36 @@ class ForestFire(gym.Env):
         # Setting the grid size
         self.env_height = height
         self.env_width = width
-        self.observation_space = spaces.Discrete(self.env_height * self.env_width)
+
+        low = np.array(
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            dtype=np.float32
+        )
+
+        high = np.array(
+            [
+                100.0,
+                100.0,
+                100.0,
+                100.0,
+                100.0,
+                100.0,
+                100.0,
+                100.0
+            ],
+            dtype=np.float32
+        )
+
+        self.observation_space = spaces.Box(low, high, dtype=np.float32)
 
         # Actions: left, right, up, down
         self.action_space = spaces.Discrete(4)
@@ -148,8 +177,8 @@ class ForestFire(gym.Env):
                         # Agent column is smaller than fire column. Contribution guaranteed in right.
                         observation[4+right] += 1/abs(col_off)
 
-                
-        return observation, reward, done
+        self.state = observation 
+        return self.state, reward, done
 
     def reset(self):
         # Setting agent location
@@ -218,6 +247,9 @@ class ForestFire(gym.Env):
                         # Agent column is smaller than fire column. Contribution guaranteed in right.
                         observation[4+right] += 1/abs(col_off)
 
+        self.state = observation
+        return self.state
+
     def render(self):
         # Create grid to display world on
         gridworld = np.zeros(shape=(self.env_height, self.env_width, 3))
@@ -242,7 +274,7 @@ class ForestFire(gym.Env):
 
 if __name__ == '__main__':
     env = ForestFire(150, 150)
-    env.reset()
+    obs = env.reset()
     env.render()
     done = False
     while not done:
