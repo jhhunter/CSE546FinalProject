@@ -30,14 +30,14 @@ class ForestFire(gym.Env):
 
         high = np.array(
             [
-                100.0,
-                100.0,
-                100.0,
-                100.0,
-                100.0,
-                100.0,
-                100.0,
-                100.0
+                np.finfo(np.float32).max,
+                np.finfo(np.float32).max,
+                np.finfo(np.float32).max,
+                np.finfo(np.float32).max,
+                np.finfo(np.float32).max,
+                np.finfo(np.float32).max,
+                np.finfo(np.float32).max,
+                np.finfo(np.float32).max
             ],
             dtype=np.float32
         )
