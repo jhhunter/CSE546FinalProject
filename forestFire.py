@@ -3,6 +3,8 @@ import gym.spaces as spaces
 import numpy as np
 import random
 import cv2
+import matplotlib.pyplot as plt
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 
 class ForestFire(gym.Env):
@@ -84,11 +86,30 @@ class ForestFire(gym.Env):
         reward = 0
         observation = np.zeros(8)
         # Check if agent left the map
-        if self.agent_location[0] >= self.env_height or env.agent_location[0] < 0 or self.agent_location[1] >= self.env_width or env.agent_location[1] < 0:
+        if self.agent_location[0] >= self.env_height or self.agent_location[0] < 0 or self.agent_location[1] >= self.env_width or self.agent_location[1] < 0:
             print("Agent Left")
             for i in range(self.people_found):
                 reward += 100
             done = True
+            for row in range(len(self.heat_matrix)):
+                for col in range(len(self.heat_matrix[0])):
+                    if self.heat_matrix[row][col] == 1:
+                        row_off = agent_row - row
+                        col_off = agent_col - col
+                        if(row_off > 0):
+                            # Agent row is greater than fire row. Contribution guaranteed in up.
+                            observation[4] += 1/row_off
+                        elif(row_off< 0):
+                            # Agent row is smaller than fire row. Contribution guaranteed in down.
+                            observation[6] += 1/abs(row_off)
+                        if(col_off > 0):
+                            # Agent column is greater than fire column. Contribution guaranteed in left.
+                            observation[7] += 1/col_off
+                        elif(col_off < 0):
+                            # Agent column is smaller than fire column. Contribution guaranteed in right.
+                            observation[5] += 1/abs(col_off)
+
+            self.state = observation 
             return observation, reward, done
 
         # Check if the agent moved into fire
@@ -250,30 +271,75 @@ class ForestFire(gym.Env):
         self.state = observation
         return self.state
 
-    def render(self):
+    # If render is not working and showing a QT error, type this in the console: 'export QT_QPA_PLATFORM=offscreen' 
+
+    def render(self, plot=True):
         # Create grid to display world on
-        gridworld = np.zeros(shape=(self.env_height, self.env_width, 3))
+        # gridworld = np.zeros(shape=(self.env_height, self.env_width, 3))
 
-        # Place agent on the grid
-        gridworld[self.agent_location] = (255, 0, 0)
+        # # Place agent on the grid
+        # gridworld[self.agent_location] = (255, 0, 0)
 
-        # Place fires on gridworld
-        for i in range(len(self.heat_matrix)):
-            for j in range(len(self.heat_matrix[0])):
-                if self.heat_matrix[i][j] == 1:
-                    gridworld[i, j] = (0, 0, 255)
+        # # Place fires on gridworld
+        # for i in range(len(self.heat_matrix)):
+        #     for j in range(len(self.heat_matrix[0])):
+        #         if self.heat_matrix[i][j] == 1:
+        #             gridworld[i, j] = (0, 0, 255)
 
-        # Place people on the gridworld
-        for person in self.people_locations:
-            gridworld[person] = (0, 255, 0)
+        # # Place people on the gridworld
+        # for person in self.people_locations:
+        #     gridworld[person] = (0, 255, 0)
         
-        gridworld = cv2.resize(gridworld, (500, 500))
-        cv2.imshow('matrix', gridworld)
-        cv2.waitKey(0)
+        # gridworld = cv2.resize(gridworld, (500, 500))
+        # cv2.imshow('matrix', gridworld)
+        # cv2.waitKey(0)
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.set_xlim(0, self.env_width)
+        ax.set_ylim(0, self.env_height)
+        zoom_val = 0.2
+        if(self.heat_matrix[self.agent_location] != 1):
+            agent = AnnotationBbox(OffsetImage(plt.imread('./images/agent.png'), zoom=0.05),
+                                    np.add(self.agent_location, [0.5, 0.5]), frameon=False)
+            ax.add_artist(agent)
+        for per in self.people_locations:
+            if(self.heat_matrix[per] != 1):
+                person = AnnotationBbox(OffsetImage(plt.imread('./images/person.png'), zoom=zoom_val),
+                                    np.add(per, [0.5, 0.5]), frameon=False)
+                ax.add_artist(person)
+        for row in range(len(self.heat_matrix)):
+            for col in range(len(self.heat_matrix[0])):
+                if(self.heat_matrix[row, col] == 1):
+                    fire = AnnotationBbox(OffsetImage(plt.imread('./images/fire.png'), zoom=0.03),
+                                    np.add((row, col), [0.5, 0.5]), frameon=False)
+                    ax.add_artist(fire)
+                else:
+                    if((row, col) == self.agent_location or (row, col) in self.people_locations):
+                        continue
+                    tree = AnnotationBbox(OffsetImage(plt.imread('./images/tree.png'), zoom=zoom_val),
+                                    np.add((row, col), [0.5, 0.5]), frameon=False)
+                    ax.add_artist(tree)
+        
+        plt.xticks(range(self.env_width))
+        plt.yticks(range(self.env_height))
+        plt.grid()  # Setting the plot to be of the type 'grid'.
+
+        if plot:  # Displaying the plot.
+            plt.show()
+        else:  # Returning the preprocessed image representation of the environment.
+            fig.canvas.draw()
+            img = np.array(fig.canvas.renderer.buffer_rgba())#[:, :, :3]
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            width = 512
+            height = 512
+            dim = (width, height)
+            # noinspection PyUnresolvedReferences
+            preprocessed_image = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
+            plt.show()
+            return preprocessed_image
 
 
 if __name__ == '__main__':
-    env = ForestFire(150, 150)
+    env = ForestFire(10, 10)
     obs = env.reset()
     env.render()
     done = False
