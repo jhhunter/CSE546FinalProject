@@ -88,17 +88,20 @@ class ForestFire(gym.Env):
         # Check if agent left the map
         if(self.agent_location[0] >= self.env_height):
             self.agent_location = (self.env_height-1, self.agent_location[1])
+            reward -= 10
         elif(self.agent_location[0] < 0):
             self.agent_location = (0, self.agent_location[1])
-        
+            reward -= 10
         if(self.agent_location[1] >= self.env_width):
             self.agent_location = (self.agent_location[0], self.env_width-1)
+            reward -= 10
         elif(self.agent_location[1] < 0):
             self.agent_location = (self.agent_location[0], 0)
+            reward -= 10
 
         # Check if the agent moved into fire
         if self.heat_matrix[self.agent_location] == 1:
-            print("Agent in fire")
+            # print("Agent in fire")
             done = True
             reward = -10
 
@@ -106,7 +109,7 @@ class ForestFire(gym.Env):
         for i in range(self.n_people):
             if self.agent_location == self.people_locations[i]:
                 # Agent found person
-                print('Person Found!')
+                # print('Person Found!')
                 self.people_found += 1
                 self.people_locations.pop(i)
                 self.n_people -= 1
@@ -140,7 +143,7 @@ class ForestFire(gym.Env):
                     if self.people_locations[per] == person:
                         self.people_locations.pop(per)
                         self.n_people -= 1
-                        print("Person is gone")
+                        # print("Person is gone")
                         break
 
         # Calculate observation
@@ -203,6 +206,9 @@ class ForestFire(gym.Env):
 
         # Set amount of people found
         self.people_found = 0
+
+        # Compute number of people to put around the map
+        self.n_people = int(np.floor(np.sqrt((self.env_height * self.env_width))))
 
         # Place people around map
         self.people_locations = []
