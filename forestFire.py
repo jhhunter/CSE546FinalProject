@@ -86,31 +86,15 @@ class ForestFire(gym.Env):
         reward = 0
         observation = np.zeros(8)
         # Check if agent left the map
-        if self.agent_location[0] >= self.env_height or self.agent_location[0] < 0 or self.agent_location[1] >= self.env_width or self.agent_location[1] < 0:
-            print("Agent Left")
-            for i in range(self.people_found):
-                reward += 100
-            done = True
-            for row in range(len(self.heat_matrix)):
-                for col in range(len(self.heat_matrix[0])):
-                    if self.heat_matrix[row][col] == 1:
-                        row_off = agent_row - row
-                        col_off = agent_col - col
-                        if(row_off > 0):
-                            # Agent row is greater than fire row. Contribution guaranteed in up.
-                            observation[4] += 1/row_off
-                        elif(row_off< 0):
-                            # Agent row is smaller than fire row. Contribution guaranteed in down.
-                            observation[6] += 1/abs(row_off)
-                        if(col_off > 0):
-                            # Agent column is greater than fire column. Contribution guaranteed in left.
-                            observation[7] += 1/col_off
-                        elif(col_off < 0):
-                            # Agent column is smaller than fire column. Contribution guaranteed in right.
-                            observation[5] += 1/abs(col_off)
-
-            self.state = observation 
-            return observation, reward, done
+        if(self.agent_location[0] >= self.env_height):
+            self.agent_location = (self.env_height-1, self.agent_location[1])
+        elif(self.agent_location[0] < 0):
+            self.agent_location = (0, self.agent_location[1])
+        
+        if(self.agent_location[1] >= self.env_width):
+            self.agent_location = (self.agent_location[0], self.env_width-1)
+        elif(self.agent_location[1] < 0):
+            self.agent_location = (self.agent_location[0], 0)
 
         # Check if the agent moved into fire
         if self.heat_matrix[self.agent_location] == 1:
@@ -126,6 +110,7 @@ class ForestFire(gym.Env):
                 self.people_found += 1
                 self.people_locations.pop(i)
                 self.n_people -= 1
+                reward += 10
                 break
 
         # Increment the fire map
@@ -197,6 +182,10 @@ class ForestFire(gym.Env):
                     elif(col_off < 0):
                         # Agent column is smaller than fire column. Contribution guaranteed in right.
                         observation[4+right] += 1/abs(col_off)
+
+        # Done if no person left to save
+        if(self.n_people <= 0):
+            done = True
 
         self.state = observation 
         return self.state, reward, done
