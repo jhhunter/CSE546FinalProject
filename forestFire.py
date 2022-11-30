@@ -8,41 +8,87 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 
 class ForestFire(gym.Env):
-    def __init__(self, height, width):
+    def __init__(self, height, width, obs_type='simple'):
         # Initializes the class
         # Define action and observation space
 
         # Setting the grid size
         self.env_height = height
         self.env_width = width
+        self.obs_type = obs_type
 
-        low = np.array(
-            [
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0
-            ],
-            dtype=np.float32
-        )
+        if(obs_type == 'simple'):
+            low = np.array(
+                [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                dtype=np.float32
+            )
 
-        high = np.array(
-            [
-                np.finfo(np.float32).max,
-                np.finfo(np.float32).max,
-                np.finfo(np.float32).max,
-                np.finfo(np.float32).max,
-                np.finfo(np.float32).max,
-                np.finfo(np.float32).max,
-                np.finfo(np.float32).max,
-                np.finfo(np.float32).max
-            ],
-            dtype=np.float32
-        )
+            high = np.array(
+                [
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max
+                ],
+                dtype=np.float32
+            )
+        else:
+            low = np.array(
+                [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                dtype=np.float32
+            )
+
+            high = np.array(
+                [
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                dtype=np.float32
+            )
 
         self.observation_space = spaces.Box(low, high, dtype=np.float32)
 
@@ -84,7 +130,10 @@ class ForestFire(gym.Env):
 
         done = False
         reward = 0
-        observation = np.zeros(8)
+        if(self.obs_type == 'simple'):
+            observation = np.zeros(8)
+        else:
+            observation = np.zeros(16)
         # Check if agent left the map
         if(self.agent_location[0] >= self.env_height):
             self.agent_location = (self.env_height-1, self.agent_location[1])
@@ -122,13 +171,13 @@ class ForestFire(gym.Env):
                 if self.heat_matrix[i][j] == 1:
                     # Increment heat at each adjacent location
                     if i - 1 >= 0 and self.heat_matrix[i - 1][j] < 1:
-                        self.heat_matrix[i - 1][j] += random.random()
+                        self.heat_matrix[i - 1][j] += random.uniform(0.1, 0.2)
                     if i + 1 < self.env_height and self.heat_matrix[i + 1][j] < 1:
-                        self.heat_matrix[i + 1][j] += random.random()
+                        self.heat_matrix[i + 1][j] += random.uniform(0.1, 0.2)
                     if j - 1 >= 0 and self.heat_matrix[i][j - 1] < 1:
-                        self.heat_matrix[i][j - 1] += random.random()
+                        self.heat_matrix[i][j - 1] += random.uniform(0.1, 0.2)
                     if j + 1 < self.env_width and self.heat_matrix[i][j + 1] < 1:
-                        self.heat_matrix[i][j + 1] += random.random()
+                        self.heat_matrix[i][j + 1] += random.uniform(0.1, 0.2)
 
         for i in range(len(self.heat_matrix)):
             for j in range(len(self.heat_matrix[0])):
@@ -186,6 +235,27 @@ class ForestFire(gym.Env):
                         # Agent column is smaller than fire column. Contribution guaranteed in right.
                         observation[4+right] += 1/abs(col_off)
 
+                        
+        if(self.obs_type != 'simple'):
+            # Populating the last 8 entries of array
+            # Populating first 4 according to presence of a person
+            if((agent_row-1, agent_col) in self.people_locations):
+                observation[8+up] = 1
+            if((agent_row+1, agent_col) in self.people_locations):
+                observation[8+down] = 1
+            if((agent_row, agent_col+1) in self.people_locations):
+                observation[8+right] = 1
+            if((agent_row, agent_col-1) in self.people_locations):
+                observation[8+left] = 1
+            # Populating last 4 according to presence of fire
+            if(agent_row-1>=0 and self.heat_matrix[agent_row-1][agent_col] == 1):
+                observation[12+up] = 1
+            if(agent_row+1<self.env_height and self.heat_matrix[agent_row+1][agent_col] == 1):
+                observation[12+down] = 1
+            if(agent_col+1<self.env_width and self.heat_matrix[agent_row][agent_col+1] == 1):
+                observation[12+right] = 1
+            if(agent_col-1>=0 and self.heat_matrix[agent_row][agent_col-1] == 1):
+                observation[12+left] = 1
         # Done if no person left to save
         if(self.n_people <= 0):
             done = True
@@ -222,7 +292,10 @@ class ForestFire(gym.Env):
             self.people_locations.append((row, col))
         
         # Calculating observation
-        observation = np.zeros(8)
+        if(self.obs_type == 'simple'):
+            observation = np.zeros(8)
+        else:
+            observation = np.zeros(16)
         up = 0
         right = 1
         down = 2
@@ -262,7 +335,27 @@ class ForestFire(gym.Env):
                     elif(col_off < 0):
                         # Agent column is smaller than fire column. Contribution guaranteed in right.
                         observation[4+right] += 1/abs(col_off)
-
+        
+        if(self.obs_type != 'simple'):
+            # Populating the last 8 entries of array
+            # Populating first 4 according to presence of a person
+            if((agent_row-1, agent_col) in self.people_locations):
+                observation[8+up] = 1
+            if((agent_row+1, agent_col) in self.people_locations):
+                observation[8+down] = 1
+            if((agent_row, agent_col+1) in self.people_locations):
+                observation[8+right] = 1
+            if((agent_row, agent_col-1) in self.people_locations):
+                observation[8+left] = 1
+            # Populating last 4 according to presence of fire
+            if(agent_row-1>=0 and self.heat_matrix[agent_row-1][agent_col] == 1):
+                observation[12+up] = 1
+            if(agent_row+1<self.env_height and self.heat_matrix[agent_row+1][agent_col] == 1):
+                observation[12+down] = 1
+            if(agent_col+1<self.env_width and self.heat_matrix[agent_row][agent_col+1] == 1):
+                observation[12+right] = 1
+            if(agent_col-1>=0 and self.heat_matrix[agent_row][agent_col-1] == 1):
+                observation[12+left] = 1
         self.state = observation
         return self.state
 
