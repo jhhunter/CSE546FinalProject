@@ -10,9 +10,11 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 
 class ForestFire(gym.Env):
-    def __init__(self, height, width, obs_type='simple', save_results=False):
+    def __init__(self, height, width, obs_type='simple', save_results=False, random_fire=False):
         # Initializes the class
-        # Define action and observation space
+
+        # Save if there should be random fire starting locations
+        self.random_fire = random_fire
 
         # Setting the grid size
         self.env_height = height
@@ -270,6 +272,25 @@ class ForestFire(gym.Env):
         self.state = observation 
         return self.state, reward, done
 
+    def __adjacent_to_agent(self, row, col):
+        if row == self.agent_location[0] - 1 or row == self.agent_location[0] + 1:
+            if col == self.agent_location[1] - 1 or col == self.agent_location[1] + 1:
+                return True
+        return False
+
+    def __adjacent_to_fire(self, row, col):
+        for i in range(-1, 2):
+            if (row == 0 and i == -1) or (row == self.env_height - 1 and i == 1):
+                pass
+            else:
+                for j in range(-1, 2):
+                    if (col == 0 and j == -1) or (col == self.env_width - 1 and j == 1):
+                        pass
+                    else:
+                        if self.heat_matrix[row+i][col+j] == 1:
+                            return True
+
+
     def reset(self):
         # Increment Reset Calls
         self.reset_count += 1
@@ -284,8 +305,19 @@ class ForestFire(gym.Env):
         self.heat_matrix = np.zeros((self.env_height, self.env_width))
 
         # Set Fire Locations
-        self.heat_matrix[int(self.env_height / 2)][0] = 1
-        self.heat_matrix[int(self.env_height - 1), int(self.env_width / 2)] = 1
+        if self.random_fire:
+            # Set two random locations on fire
+            for i in range(2):
+                col = random.randint(0, self.env_width - 1)
+                row = random.randint(0, self.env_height - 1)
+                # Verify the fire is not starting on or adjacent to the agent
+                while self.heat_matrix[row][col] == 1 or (row, col) == self.agent_location or self.__adjacent_to_agent(row, col):
+                    col = random.randint(0, self.env_width - 1)
+                    row = random.randint(0, self.env_height - 1)
+                self.heat_matrix[row][col] = 1
+        else:
+            self.heat_matrix[int(self.env_height / 2)][0] = 1
+            self.heat_matrix[int(self.env_height - 1), int(self.env_width / 2)] = 1
 
         # Set amount of people found
         self.people_found = 0
@@ -299,7 +331,7 @@ class ForestFire(gym.Env):
             col = random.randint(0, self.env_width-1)
             row = random.randint(0, self.env_height-1)
             # Check to make sure person is not already positioned on a cell with something else there
-            while (row, col) in self.people_locations or self.heat_matrix[row][col] == 1 or (row, col) == self.agent_location:
+            while (row, col) in self.people_locations or self.__adjacent_to_fire(row, col):
                 col = random.randint(0, self.env_width-1)
                 row = random.randint(0, self.env_height-1)
             self.people_locations.append((row, col))
