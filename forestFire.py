@@ -1,3 +1,5 @@
+import os
+import gc
 import gym
 import gym.spaces as spaces
 import numpy as np
@@ -8,7 +10,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 
 class ForestFire(gym.Env):
-    def __init__(self, height, width, obs_type='simple'):
+    def __init__(self, height, width, obs_type='simple', save_results=False):
         # Initializes the class
         # Define action and observation space
 
@@ -107,6 +109,11 @@ class ForestFire(gym.Env):
 
         # Value to keep track of people found
         self.people_found = 0
+
+        # Values for saving the renders
+        self.save_results = save_results
+        self.reset_count = 0
+        self.render_calls = 0
 
         # Max number of time steps in a run
         # self.max_timesteps = 0
@@ -264,6 +271,12 @@ class ForestFire(gym.Env):
         return self.state, reward, done
 
     def reset(self):
+        # Increment Reset Calls
+        self.reset_count += 1
+
+        # Reset render calls
+        self.render_calls = 0
+
         # Setting agent location
         self.agent_location = (0, 0)
 
@@ -381,6 +394,7 @@ class ForestFire(gym.Env):
         # gridworld = cv2.resize(gridworld, (500, 500))
         # cv2.imshow('matrix', gridworld)
         # cv2.waitKey(0)
+        # fig = plt.Figure()
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.set_xlim(0, self.env_width)
         ax.set_ylim(0, self.env_height)
@@ -411,19 +425,48 @@ class ForestFire(gym.Env):
         plt.yticks(range(self.env_height))
         plt.grid()  # Setting the plot to be of the type 'grid'.
 
+        if not plot:
+            trialDir = 'savedPlots/trial' + str(self.reset_count)
+            if not os.path.exists(trialDir):
+                os.mkdir(trialDir)
+                print('Created directory:', trialDir)
+            saveDir = trialDir + '/figure' + str(self.render_calls) + '.png'
+            plt.savefig(saveDir)
+            # Clear the current axes.
+            plt.cla()
+            # Clear the current figure.
+            plt.clf()
+            # Closes all the figure windows.
+            plt.close('all')
+            plt.close(fig)
+            gc.collect()
+            # fig.canvas.draw()
+            # img = np.array(fig.canvas.renderer.buffer_rgba())  # [:, :, :3]
+            # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            # width = 512
+            # height = 512
+            # dim = (width, height)
+            # preprocessed_image = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
+            # cv2.imwrite(saveDir, preprocessed_image)
+            self.render_calls += 1
+            plt.close()
+            return
+
         if plot:  # Displaying the plot.
             plt.show()
-        else:  # Returning the preprocessed image representation of the environment.
-            fig.canvas.draw()
-            img = np.array(fig.canvas.renderer.buffer_rgba())#[:, :, :3]
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            width = 512
-            height = 512
-            dim = (width, height)
-            # noinspection PyUnresolvedReferences
-            preprocessed_image = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
-            plt.show()
-            return preprocessed_image
+            plt.close()
+        # else:  # Returning the preprocessed image representation of the environment.
+            # fig.canvas.draw()
+            # img = np.array(fig.canvas.renderer.buffer_rgba())#[:, :, :3]
+            # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            # width = 512
+            # height = 512
+            # dim = (width, height)
+            # # noinspection PyUnresolvedReferences
+            # preprocessed_image = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
+            # plt.show()
+            # plt.close()
+            # return preprocessed_image
 
 
 if __name__ == '__main__':
