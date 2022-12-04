@@ -53,11 +53,11 @@ class Critic(nn.Module):
 
 # Class for ActorCritic
 class ActorCritic:
-    def __init__(self, obs_space, action_space, gamma=0.99, actor_lr=1e-2, critic_lr=1e-2, dense=False):
+    def __init__(self, obs_space, action_space, gamma=0.99, actor_lr=1e-2, critic_lr=1e-2, dense=False, hidden_units=64):
         self.obs_space = obs_space
         self.action_space = action_space
-        self.actor = Actor(obs_space, action_space, dense=dense)
-        self.critic = Critic(obs_space, dense=dense)
+        self.actor = Actor(obs_space, action_space, hidden_units=hidden_units, dense=dense)
+        self.critic = Critic(obs_space, hidden_units=hidden_units, dense=dense)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=actor_lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=critic_lr)
         self.gamma = gamma
