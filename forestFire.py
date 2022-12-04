@@ -331,7 +331,7 @@ class ForestFire(gym.Env):
             col = random.randint(0, self.env_width-1)
             row = random.randint(0, self.env_height-1)
             # Check to make sure person is not already positioned on a cell with something else there
-            while (row, col) in self.people_locations or self.__adjacent_to_fire(row, col):
+            while (row, col) in self.people_locations or self.__adjacent_to_fire(row, col) or self.agent_location == (row, col):
                 col = random.randint(0, self.env_width-1)
                 row = random.randint(0, self.env_height-1)
             self.people_locations.append((row, col))
