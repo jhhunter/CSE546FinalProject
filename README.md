@@ -61,8 +61,18 @@ The following three algorithms were used to train the agent:
 
 ## Visualizations for trained agent
 Saving 9 people
+
+
 ![alt Environment Render](./images/readme_images/visualization_9.gif)
+
+
 Saving 8 people
+
+
 ![alt Environment Render](./images/readme_images/visualization_8.gif)
+
+
 Saving 7 people
+
+
 ![alt Environment Render](./images/readme_images/visualization_7.gif)
