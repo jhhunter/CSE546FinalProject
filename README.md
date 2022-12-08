@@ -22,14 +22,57 @@ If a cell containing a person sets fire, the person is elimanted from the enviro
 
 The number of people in a grid will be calculated depending on the size of the grid.
 
+![alt Environment Render](./images/readme_images/environment.gif)
+
 ### Observations
+We have two different observation types, both of which are made to keep the agent generalizable across different grid sizes as well as people and fire spawning positions.
+
+#### Simple Observation
 At each step, the agent will get a vector of length 8. The first four values in the vector, will be intensity values of how close a person is in the corresponding direction. The next four will be the intensity values of how close a fire is in that direction. These intensity values will be dependant on the number of people/fires in the corresponding direction.
 
+![alt Simple Observation](./images/readme_images/simple_state.png)
+
+#### Complex Observation
+At each step, the agent will get a vector of length 16. The first eight values are the same as mentioned before in simple observation type. The last eight values are binary in nature which are added to give the agent a view of 4 adjacent cells in the grid where it can move to. The first four values are to tell if a person is present in that direction. The last four values are to tell if a fire is present in that direction.
+
+![alt Complex Observation](./images/readme_images/complex_state.png)
+
 ### The Agent
-The Agent's goal is to pick up all of the people before the fire eliminates them and to escape to safety. When the agent lands on a cell that contains a person, it will automatically pick them up. When the agent no longer has people to pick up (which would be known when the first four values in the observation vector are zero) the agent will need to escape which can be done by moving to the edge of the grid and then moving off of the grid environment.
+The Agent's goal is to pick up all of the people before the fire eliminates them and keep itself away from the fire. When the agent lands on a cell that contains a person, it will automatically pick them up.
 
 ### Termination
-The episode will terminate if the agent traverses onto a cell that contains fire. If the agent makes a move that would result in it leaving the grid world, the episode also terminates because this symbolizes the agent leaving to safety.
+The episode will terminate if the agent traverses onto a cell that contains fire or if there is no one left to save in the grid.
 
 ### Rewards
-The agent is given a small positive reward for picking up any person on the grid world. Since the goal is for the agent to escort the people to safety, an even greater reward is given after the agent escapes the grid world with people (the reward is multiplied by the number of people the agent has picked up). The agent will be given a negative reward if it moves onto a cell that is engulfed in flames.
+The agent gets a reward of +10 for picking up a person and -10 if it goes to a cell containing fire or tries to leave the grid.
+
+## Reinforcement Learning Algorithms Used
+The following three algorithms were used to train the agent:
+- Deep Q-Network
+- Double Deep Q-Network
+- TD Advantage Actor Critic (A2C)
+
+## Comparisons
+### Comparison between simple and complex observation learning
+![alt Complex Observation](./images/readme_images/comparison_simple_complex.png)
+
+### Comparison between different algorithms
+![alt Complex Observation](./images/readme_images/comparison_algorithms.png)
+
+## Visualizations for trained agent
+Saving 9 people
+
+
+![alt Environment Render](./images/readme_images/visualization_9.gif)
+
+
+Saving 8 people
+
+
+![alt Environment Render](./images/readme_images/visualization_8.gif)
+
+
+Saving 7 people
+
+
+![alt Environment Render](./images/readme_images/visualization_7.gif)
